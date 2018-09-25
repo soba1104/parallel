@@ -409,6 +409,10 @@ module Parallel
 
         # create a new replacement worker
         running = workers - [worker]
+
+        # この replace_worker は並列に呼ばれるので、i が0から開始すると限らない。
+        # i が0以外から開始されると、workers[i] への代入によって, i より小さいインデックスの要素に nil が代入される。
+        # 例えば、最初に実行されたのが i=2 だった場合、workers[2] への代入によって workers は [nil, nil, worker] という値をとる。
         workers[i] = worker(job_factory, options.merge(started_workers: running, worker_number: i), &blk)
       end
     end
@@ -429,7 +433,7 @@ module Parallel
         self.worker_number = options[:worker_number]
 
         begin
-          options.delete(:started_workers).each(&:close_pipes)
+          options.delete(:started_workers).compact.each(&:close_pipes)
 
           parent_write.close
           parent_read.close
